@@ -203,7 +203,8 @@ p <- (p1 + p2) /
       str_c(
         "Í dæminu er fólki gefin tilviljanakennd lýðfræðileg staða. ",
         "Einstaklingar með hærri stöðu eru líklegri til að leita til Klíníkurinnar. ",
-        "Jafnframt er að jafnaði dýrari að framkvæma aðgerð á einstakling í verri lýðfræðilegri stöðu. ",
+        "Jafnframt er að jafnaði dýrari að framkvæma aðgerð á einstakling í verri lýðfræðilegri stöðu, ",
+        "til dæmis vegna áhrifa fátæktar á heilsu.",
         "Í dæminu kostar aðgerð hjá LSH að meðaltali 1.130.000kr en 900.000kr hjá Klínikinni."
       ), 
       width = 165

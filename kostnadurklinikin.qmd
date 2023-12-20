@@ -14,8 +14,8 @@ theme_set(theme_metill())
 ```{r}
 caption <- str_c(
   "Lýðfræðileg staða dregin úr Normal(0, 1) dreifingu.", "\n",
-  "Líkur á að nýta sér Klínikina reiknaðar sem invlogit(-2 + 1.5 * lýðfræðilegstaða)", "\n",
-  "Kostnaður aðgerðar reiknaður sem 1.090.000kr - 200.000kr * lýðfræðilegstaða"
+  "Líkur á að nýta sér Klínikina reiknaðar sem invlogit(-3 + 2 * lýðfræðilegstaða)", "\n",
+  "Kostnaður aðgerðar reiknaður sem 1.500.000kr - 800.000kr * inv_logit(lýðfræðilegstaða)"
 )
 ```
 
@@ -26,8 +26,8 @@ n_id <- 1e4
 set.seed(1)
 x <- rnorm(n = n_id)
 
-klinikin <- rbinom(n_id, size = 1, prob = inv_logit(-2 + 1.5 * x))
-kostnadur <- rnorm(n_id, mean = 1090000) + 200000 * (-x)
+klinikin <- rbinom(n_id, size = 1, prob = inv_logit(-3 + 2 * x))
+kostnadur <- rnorm(n_id, mean = 1500000) - 800000 * inv_logit(x)
 
 d <- tibble(
   lyd_breytur = x,
@@ -43,7 +43,7 @@ d <- tibble(
 ```{r}
 m <- glm(klinikin ~ x, family = binomial())
 p1 <- tibble(
-  x = seq(-3, 4, length.out = 100)
+  x = seq(-5, 5, length.out = 100)
 ) |> 
   mutate(
     p = predict(m, newdata = data.frame(x), type = "response")
@@ -53,7 +53,8 @@ p1 <- tibble(
   geom_line() +
   scale_x_continuous(
     breaks = c(-4, -2, -0, 2, 4),
-    labels = c("Mjög slæm", "Slæm", "Miðlungs", "Góð", "Mjög góð")
+    labels = c("Mjög slæm", "Slæm", "Miðlungs", "Góð", "Mjög góð"),
+    expand = expansion()
   ) +
   scale_y_continuous(
     limits = c(0, 1),
@@ -63,12 +64,40 @@ p1 <- tibble(
   labs(
     x = NULL,
     y = NULL,
-    subtitle = "Líkur á að leita til Klínikurinnar eftir lýðfræðilegri stöðu"
+    subtitle = "Líkur á að leita til Klínikurinnar eftir lýðfræðilegri stöðu (uppspuni)"
   )
 ```
 
 ```{r}
-p2 <- d |> 
+p2 <- tibble(
+  x = seq(-5, 5, length.out = 100),
+  y = 1500000 - 800000 * inv_logit(x)
+) |> 
+  ggplot(aes(x, y)) +
+  geom_line() +
+  geom_area(alpha = 0.3) +
+  scale_y_continuous(
+    breaks = pretty_breaks(6),
+    limits = c(0, NA),
+    expand = expansion(),
+    labels = label_isk(scale = 1e-3)
+  ) +
+  scale_x_continuous(
+    breaks = c(-4, -2, -0, 2, 4),
+    labels = c("Mjög slæm", "Slæm", "Miðlungs", "Góð", "Mjög góð"),
+    limits = c(-5, 5),
+    expand = expansion()
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    subtitle = "Kostnaður aðgerðar eftir lýðfræðilegri stöðu (uppspuni)"
+  )
+```
+
+
+```{r}
+p3 <- d |> 
   ggplot(aes(
     lyd_breytur, 
     fill = stadsetning,
@@ -86,61 +115,13 @@ p2 <- d |>
     limits = c(-4, 4)
   ) +
   scale_y_continuous(
-    limits = c(0, 0.5),
+    limits = c(0, 0.57),
     expand = expansion()
   ) +
   scale_colour_brewer(palette = "Set1") +
   scale_fill_brewer(palette = "Set1") +
   scale_hjust_manual(
     values = c(0.7, 0.3)
-  ) +
-  theme(
-    legend.position = "none",
-    # axis.text.y = element_blank(),
-    axis.line.y = element_blank(),
-    axis.ticks.y = element_blank()
-  ) +
-  labs(
-    x = NULL,
-    y = NULL,
-    subtitle = "Lýðfræðileg dreifing sjúklinga eftir staðsetningu"
-  )
-```
-
-
-
-
-```{r}
-p3 <- d |> 
-  ggplot(aes(
-    kostnadur, 
-    fill = stadsetning,
-    col = stadsetning,
-    label = stadsetning, 
-    hjust = stadsetning
-  )) +
-  geom_vline(
-    xintercept = c(890000, 1090000),
-    col = c("#e41a1c", "#377eb8"),
-    lty = 2,
-    inherit.aes = FALSE
-  ) +
-  geom_density(color = NA, alpha = 0.4) +
-  geom_labeldensity(
-    fill = "#faf9f9"
-  ) +
-  scale_x_continuous(
-    breaks = c(500000, 890000, 1090000, 1500000),
-    labels = label_isk(scale = 1e-3)
-  ) +
-  scale_y_continuous(
-    limits = c(0, 2.5e-6),
-    expand = expansion()
-  ) +
-  scale_colour_brewer(palette = "Set1") +
-  scale_fill_brewer(palette = "Set1") +
-  scale_hjust_manual(
-    values = c(0.3, 0.7)
   ) +
   theme(
     legend.position = "none",
@@ -151,25 +132,81 @@ p3 <- d |>
   labs(
     x = NULL,
     y = NULL,
-    subtitle = "Dreifing á kostnaði aðgerða eftir staðsetningu"
+    subtitle = "Lýðfræðileg dreifing sjúklinga eftir staðsetningu (uppspuni)"
+  )
+```
+
+
+
+
+```{r}
+p4 <- d |> 
+  ggplot(aes(
+    kostnadur, 
+    fill = stadsetning,
+    col = stadsetning,
+    label = stadsetning, 
+    hjust = stadsetning
+  )) +
+  geom_vline(
+    xintercept = c(890000, 1090000),
+    col = c("#e41a1c", "#377eb8"),
+    lty = 2
+  ) +
+  geom_density(color = NA, alpha = 0.4) +
+  geom_labeldensity(
+    fill = "#faf9f9"
+  ) +
+  scale_x_continuous(
+    breaks = c(500000, 890000, 1090000, 1500000),
+    labels = label_isk(scale = 1e-3)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 4.5e-6),
+    expand = expansion()
+  ) +
+  scale_colour_brewer(palette = "Set1") +
+  scale_fill_brewer(palette = "Set1") +
+  scale_hjust_manual(
+    values = c(0.25, 0.7)
+  ) +
+  theme(
+    legend.position = "none",
+    axis.text.y = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank()
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    subtitle = "Dreifing á kostnaði aðgerða eftir staðsetningu (uppspuni)"
   )
 
-p3
+p4
+```
+
+```{r}
+d |> 
+  summarise(
+    verd = mean(kostnadur),
+    .by = stadsetning
+  )
 ```
 
 
 ```{r}
 p <- (p1 + p2) /
-  p3 +
+  (p3 + p4) +
   plot_annotation(
     title = "Uppspunnið dæmi um hvernig munur á kostnaði aðgerða getur orðið til óháð skilvirkni stofnana",
     subtitle = str_wrap(
       str_c(
         "Í dæminu er fólki gefin tilviljanakennd lýðfræðileg staða. ",
         "Einstaklingar með hærri stöðu eru líklegri til að leita til Klíníkurinnar. ",
-        "Jafnframt er að jafnaði dýrari að framkvæma aðgerð á einstakling í verri lýðfræðilegri stöðu."
+        "Jafnframt er að jafnaði dýrari að framkvæma aðgerð á einstakling í verri lýðfræðilegri stöðu. ",
+        "Í dæminu kostar aðgerð hjá LSH að meðaltali 1.130.000kr en 900.000kr hjá Klínikinni."
       ), 
-      width = 140
+      width = 165
     ),
     caption = caption
   )
@@ -177,7 +214,7 @@ p <- (p1 + p2) /
 ggsave(
   plot = p,
   filename = "figures/plot.png",
-  width = 8, height = 0.621 * 8, scale = 1.5
+  width = 8, height = 0.621 * 8, scale = 1.7
 )
 ```
 
